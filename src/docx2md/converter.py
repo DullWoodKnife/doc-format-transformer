@@ -38,8 +38,8 @@ class Converter:
         if markitdown is None:
             raise RuntimeError("markitdown not installed")
 
-        result = markitdown.markitdown(input_path)
-        return result.text
+        result = markitdown.MarkItDown().convert(input_path)
+        return result.text_content
 
     def convert_markdown_to(self, markdown_content: str, output_format: str, output_path: str) -> None:
         """Convert Markdown to target format."""

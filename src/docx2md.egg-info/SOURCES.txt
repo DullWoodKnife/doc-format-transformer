@@ -1,0 +1,13 @@
+setup.py
+src/docx2md/__init__.py
+src/docx2md/cli.py
+src/docx2md/converter.py
+src/docx2md/utils.py
+src/docx2md.egg-info/PKG-INFO
+src/docx2md.egg-info/SOURCES.txt
+src/docx2md.egg-info/dependency_links.txt
+src/docx2md.egg-info/entry_points.txt
+src/docx2md.egg-info/requires.txt
+src/docx2md.egg-info/top_level.txt
+tests/test_converter.py
+tests/test_utils.py

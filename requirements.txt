@@ -1,0 +1,6 @@
+markitdown
+markdown
+weasyprint
+python-docx
+ebooklib
+click

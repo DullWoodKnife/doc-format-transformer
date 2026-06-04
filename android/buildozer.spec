@@ -14,6 +14,10 @@ version = 0.1.0
 # 依赖 - kivy 不指定版本，使用 kivy recipe 编译
 requirements = python3,kivy,markitdown[all],beautifulsoup4,mammoth,pdfminer.six,pdfplumber,fpdf2,python-docx,ebooklib==0.18,chardet,charset-normalizer,defusedxml,markdownify,magika
 
+# p4a 使用 stable tag v2024.01.21（Python 3.11）
+p4a.url = https://github.com/kivy/python-for-android.git
+p4a.branch = v2024.01.21
+
 # Android 配置
 android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
 android.api = 34
@@ -27,8 +31,5 @@ android.build_tools = 34.0.0
 mode = debug
 
 [buildozer]
-# 使用 kivy 官方 stable tag v2024.01.21（避免 master 分支的 Python 3.14.2）
-p4a.url = https://github.com/kivy/python-for-android.git
-p4a.branch = v2024.01.21
 
 log_level = 2

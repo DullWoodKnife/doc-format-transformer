@@ -16,6 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Accept Android SDK licenses (pre-installed SDK)
         run: |
           SDK="/usr/local/lib/android/sdk"
@@ -31,7 +36,9 @@ jobs:
       - name: Install system + Python dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext libltdl-dev
+          # OpenGL headers needed by kivy wheel build
+          sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext libltdl-dev \
+            libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev
           pip install --upgrade pip
           pip install buildozer==1.5.0 kivy==2.2.0 cython==0.29.37 pexpect==4.9.0
           pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber

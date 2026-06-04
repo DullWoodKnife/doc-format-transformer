@@ -32,37 +32,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext libltdl-dev
-
-          # Install buildozer directly from pip (no venv needed for patch)
           pip install --upgrade pip
-          pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0
+          pip install buildozer==1.5.0 kivy==2.2.0 cython==0.29.37 pexpect==4.9.0
           pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
-          pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
+          pip install fpdf2 python-docx ebooklib==0.18 chardet charset-normalizer defusedxml markdownify magika
 
       - name: Patch buildozer to support cmdline-tools layout
         run: |
-          # Find buildozer directory and patch sdkmanager_path
           python3 << PYEOF
-          import buildozer, os, sys
+          import buildozer, os
 
           buildozer_dir = os.path.dirname(buildozer.__file__)
           target = os.path.join(buildozer_dir, 'targets', 'android.py')
-          print(f"Patching: {target}")
-
-          if not os.path.exists(target):
-              print(f"ERROR: {target} not found!")
-              # Try alternate locations
-              for p in [
-                  '/root/.local/lib/python3.11/site-packages/buildozer/targets/android.py',
-                  '/root/.local/lib/python3.12/site-packages/buildozer/targets/android.py',
-                  '/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/buildozer/targets/android.py',
-              ]:
-                  if os.path.exists(p):
-                      target = p
-                      print(f"Found alternate: {target}")
-                      break
-              else:
-                  sys.exit(1)
 
           with open(target, 'r') as f:
               content = f.read()

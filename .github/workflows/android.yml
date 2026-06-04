@@ -41,7 +41,9 @@ jobs:
           cp -r cmdline-tools/* latest/ 2>/dev/null || mv cmdline-tools/* latest/ 2>/dev/null || true
           export ANDROID_HOME=$HOME/android-sdk
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+          # Accept ALL licenses
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          # Install build-tools 34 (Buildozer will install others via gradle too)
           sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" > /dev/null 2>&1 || true
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
@@ -56,7 +58,16 @@ jobs:
           pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
 
       - name: Build debug APK
+        env:
+          ANDROID_HOME: /home/runner/android-sdk
+          ANDROID_SDK_ROOT: /home/runner/android-sdk
+          ANDROID_NDK_HOME: /home/runner/android-sdk/ndk/26.1.10909125
         run: |
+          # Link Buildozer to use our pre-installed SDK instead of downloading its own
+          mkdir -p /home/runner/.buildozer/android/platform
+          if [ ! -L /home/runner/.buildozer/android/platform/android-sdk ]; then
+            ln -s /home/runner/android-sdk /home/runner/.buildozer/android/platform/android-sdk
+          fi
           cd android
           buildozer android debug
         timeout-minutes: 60

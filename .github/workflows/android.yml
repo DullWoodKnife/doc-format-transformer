@@ -54,12 +54,14 @@ jobs:
           if [ ! -e "$BUILDOZER_SDK/tools/bin/sdkmanager" ]; then
             ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$BUILDOZER_SDK/tools/bin/sdkmanager"
           fi
-          echo "SDK symlink ready"
 
       - name: Build debug APK
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
+          # Use official PyPI instead of mirror
+          PIP_INDEX_URL: https://pypi.org/simple/
+          PIP_TRUSTED_HOST: pypi.org
         run: |
           cd android
           buildozer android debug

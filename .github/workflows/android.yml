@@ -27,6 +27,7 @@ jobs:
           echo -e "\ne9bac50e877f1d597ebb3b69539050a6d3b3e4e7" > "$SDK/licenses/android-sdk-arm-dbt-license"
           echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googlexr-license"
+          echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-sdk-license-2025"
 
       - name: Install Python dependencies
         run: |
@@ -40,6 +41,19 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
+          # Link Buildozer's SDK path to the pre-installed SDK
+          BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
+          mkdir -p "$(dirname "$BUILDOZER_SDK")"
+          if [ ! -L "$BUILDOZER_SDK" ]; then
+            ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
+          fi
+
+          # Also link build-tools 34 to build-tools (so p4a finds a working version)
+          mkdir -p "$BUILDOZER_SDK/build-tools"
+          if [ ! -e "$BUILDOZER_SDK/build-tools/34.0.0" ]; then
+            ln -s /usr/local/lib/android/sdk/build-tools/34.0.0 "$BUILDOZER_SDK/build-tools/34.0.0"
+          fi
+
           cd android
           buildozer android debug
         timeout-minutes: 60

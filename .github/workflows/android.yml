@@ -28,6 +28,10 @@ jobs:
           echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googlexr-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-sdk-license-2025"
+          # Create fake tools/bin/sdkmanager that redirects to cmdline-tools
+          mkdir -p "$SDK/tools/bin"
+          ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
+          ln -sf "$SDK/cmdline-tools/latest/bin/avdmanager" "$SDK/tools/bin/avdmanager" 2>/dev/null || true
 
       - name: Install Python dependencies
         run: |
@@ -47,12 +51,14 @@ jobs:
           if [ ! -L "$BUILDOZER_SDK" ]; then
             ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
           fi
-
-          # Also link build-tools 34 to build-tools (so p4a finds a working version)
+          # Link build-tools too
           mkdir -p "$BUILDOZER_SDK/build-tools"
           if [ ! -e "$BUILDOZER_SDK/build-tools/34.0.0" ]; then
             ln -s /usr/local/lib/android/sdk/build-tools/34.0.0 "$BUILDOZER_SDK/build-tools/34.0.0"
           fi
+          # Create fake tools/bin in buildozer's SDK too
+          mkdir -p "$BUILDOZER_SDK/tools/bin"
+          ln -sf "$BUILDOZER_SDK/../android-sdk/cmdline-tools/latest/bin/sdkmanager" "$BUILDOZER_SDK/tools/bin/sdkmanager" 2>/dev/null || true
 
           cd android
           buildozer android debug

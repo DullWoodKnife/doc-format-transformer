@@ -16,22 +16,15 @@ requirements = python3,kivy,markitdown[all],beautifulsoup4,mammoth,pdfminer.six,
 
 # Android 配置
 android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
-android.api = 24
-android.minapi = 21
+android.api = 34
+android.minapi = 24
 android.archs = arm64-v8a,armeabi-v7a
+android.ndk_version = 28c
+android.sdk_version = 34
+android.build_tools = 34.0.0
 
-# 禁止访问网络（纯本地）
-android.allow_network = False
-
-# 完整 log（调试用）
-log_level = 2
-
-# 去除不必要的包减小体积
-android.whitelist = 
-android.blacklist =
-
-# 构建模式
-mode = release
+# 构建模式：debug 不需要签名
+mode = debug
 
 [buildozer]
 

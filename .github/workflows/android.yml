@@ -36,7 +36,6 @@ jobs:
       - name: Install system + Python dependencies
         run: |
           sudo apt-get update
-          # OpenGL headers needed by kivy wheel build
           sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext libltdl-dev \
             libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev
           pip install --upgrade pip
@@ -84,11 +83,18 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
+          # Create Buildozer SDK symlink + verify
           BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
           mkdir -p "$(dirname "$BUILDOZER_SDK")"
-          if [ ! -L "$BUILDOZER_SDK" ]; then
-            ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
-          fi
+          rm -rf "$BUILDOZER_SDK"
+          ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
+          # Verify the symlink and key files exist
+          echo "=== SDK symlink ==="
+          ls -la "$BUILDOZER_SDK" | head -5
+          echo "=== cmdline-tools ==="
+          ls "$BUILDOZER_SDK/cmdline-tools/" 2>&1 || echo "NO cmdline-tools"
+          echo "=== sdkmanager ==="
+          ls "$BUILDOZER_SDK/cmdline-tools/latest/bin/sdkmanager" 2>&1 || echo "NO sdkmanager"
           cd android
           buildozer android debug
         timeout-minutes: 120

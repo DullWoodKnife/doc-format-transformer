@@ -33,8 +33,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies in venv (writable location)
+      - name: Install system + Python dependencies
         run: |
+          # Critical: libtool provides ltmain.sh needed by libffi recipe's autogen.sh
+          sudo apt-get update
+          sudo apt-get install -y libtool libtool-bin autoconf automake autopoint
+
           python3 -m venv /home/runner/venv
           /home/runner/venv/bin/pip install --upgrade pip
           /home/runner/venv/bin/pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0

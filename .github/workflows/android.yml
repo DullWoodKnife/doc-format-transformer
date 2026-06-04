@@ -19,7 +19,24 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: build-tools;34.0.0
+          packages: build-tools;34.0.0,platforms;android-34
+
+      - name: Accept Android SDK licenses (all versions, all build-tools)
+        run: |
+          # Pre-accept ALL license files Buildozer might look at
+          for SDK in \
+            "/usr/local/lib/android/sdk" \
+            "$HOME/.buildozer/android/platform/android-sdk"; do
+            mkdir -p "$SDK/licenses"
+            echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$SDK/licenses/android-sdk-license"
+            echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" >> "$SDK/licenses/android-sdk-license"
+            echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/android-sdk-preview-license"
+            echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googletv-license"
+            echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
+          done
+          # Also use sdkmanager to accept licenses (covers any new ones)
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          yes | /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --licenses > /dev/null 2>&1 || true
 
       - name: Install Python dependencies
         run: |
@@ -29,7 +46,11 @@ jobs:
           pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
 
       - name: Build debug APK
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          # Make SDK root world-readable so Buildozer's build user can access it
         run: |
+          chmod -R 755 /usr/local/lib/android/sdk
           cd android
           buildozer android debug
         timeout-minutes: 60

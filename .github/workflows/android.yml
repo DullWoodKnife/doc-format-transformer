@@ -59,12 +59,16 @@ jobs:
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
+          # Let p4a auto-download NDK 25b
+          ANDROIDNDK: /home/runner/.buildozer/android/platform/android-ndk-r25b
           PIP_INDEX_URL: https://pypi.org/simple/
           PIP_TRUSTED_HOST: pypi.org
         run: |
+          # Clean old build artifacts from previous failed attempts
+          rm -rf android/.buildozer
           cd android
           buildozer android debug
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

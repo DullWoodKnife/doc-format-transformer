@@ -28,17 +28,10 @@ jobs:
           echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googlexr-license"
 
-      - name: Set up Python & venv
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Install system + Python dependencies
         run: |
-          # Critical: libtool provides ltmain.sh needed by libffi recipe's autogen.sh
           sudo apt-get update
-          sudo apt-get install -y libtool libtool-bin autoconf automake autopoint
-
+          sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext libltdl-dev
           python3 -m venv /home/runner/venv
           /home/runner/venv/bin/pip install --upgrade pip
           /home/runner/venv/bin/pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0
@@ -89,7 +82,7 @@ jobs:
           source /home/runner/venv/bin/activate
           cd android
           buildozer android debug
-        timeout-minutes: 60
+        timeout-minutes: 120
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

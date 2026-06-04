@@ -27,11 +27,6 @@ jobs:
           echo -e "\ne9bac50e877f1d597ebb3b69539050a6d3b3e4e7" > "$SDK/licenses/android-sdk-arm-dbt-license"
           echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googlexr-license"
-          echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-sdk-license-2025"
-          # Create fake tools/bin/sdkmanager that redirects to cmdline-tools
-          mkdir -p "$SDK/tools/bin"
-          ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
-          ln -sf "$SDK/cmdline-tools/latest/bin/avdmanager" "$SDK/tools/bin/avdmanager" 2>/dev/null || true
 
       - name: Install Python dependencies
         run: |
@@ -40,26 +35,49 @@ jobs:
           pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
           pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
 
+      - name: Patch buildozer to support cmdline-tools layout
+        run: |
+          python3 << 'PYEOF'
+          import os
+          TARGET = "/root/.local/lib/python3.11/site-packages/buildozer/targets/android.py"
+          if not os.path.exists(TARGET):
+              TARGET = "/root/.local/lib/python3.11/dist-packages/buildozer/targets/android.py"
+          with open(TARGET, 'r') as f:
+              content = f.read()
+          if 'cmdline-tools' not in content:
+              old = ('        sdkmanager_path = join(\n'
+                     '            self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
+                     '        if not os.path.isfile(sdkmanager_path):\n'
+                     '            raise BuildozerException(\n'
+                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
+                     '                 \' installed\'.format(sdkmanager_path)))')
+              new = ('        sdkmanager_path = join(\n'
+                     '            self.android_sdk_dir, \'cmdline-tools\', \'latest\', \'bin\', sdk_manager_name)\n'
+                     '        if not os.path.isfile(sdkmanager_path):\n'
+                     '            sdkmanager_path = join(\n'
+                     '                self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
+                     '        if not os.path.isfile(sdkmanager_path):\n'
+                     '            raise BuildozerException(\n'
+                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
+                     '                 \' installed\'.format(sdkmanager_path)))')
+              content = content.replace(old, new)
+              with open(TARGET, 'w') as f:
+                  f.write(content)
+              print('Patch applied to', TARGET)
+          else:
+              print('Already patched')
+          PYEOF
+
       - name: Build debug APK
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          # Link Buildozer's SDK path to the pre-installed SDK
           BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
           mkdir -p "$(dirname "$BUILDOZER_SDK")"
           if [ ! -L "$BUILDOZER_SDK" ]; then
             ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
           fi
-          # Link build-tools too
-          mkdir -p "$BUILDOZER_SDK/build-tools"
-          if [ ! -e "$BUILDOZER_SDK/build-tools/34.0.0" ]; then
-            ln -s /usr/local/lib/android/sdk/build-tools/34.0.0 "$BUILDOZER_SDK/build-tools/34.0.0"
-          fi
-          # Create fake tools/bin in buildozer's SDK too
-          mkdir -p "$BUILDOZER_SDK/tools/bin"
-          ln -sf "$BUILDOZER_SDK/../android-sdk/cmdline-tools/latest/bin/sdkmanager" "$BUILDOZER_SDK/tools/bin/sdkmanager" 2>/dev/null || true
-
           cd android
           buildozer android debug
         timeout-minutes: 60

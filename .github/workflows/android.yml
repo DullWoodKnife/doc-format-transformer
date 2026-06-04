@@ -32,51 +32,63 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libtool libtool-bin autoconf automake autopoint gettext libltdl-dev
-          python3 -m venv /home/runner/venv
-          /home/runner/venv/bin/pip install --upgrade pip
-          /home/runner/venv/bin/pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0
-          /home/runner/venv/bin/pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
-          /home/runner/venv/bin/pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
+
+          # Install buildozer directly from pip (no venv needed for patch)
+          pip install --upgrade pip
+          pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0
+          pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
+          pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
 
       - name: Patch buildozer to support cmdline-tools layout
         run: |
-          # Dynamically find buildozer path from venv
-          TARGET=$(/home/runner/venv/bin/python3 -c "import buildozer, os; print(os.path.join(os.path.dirname(buildozer.__file__), 'targets', 'android.py'))")
-          echo "Patching: $TARGET"
-
+          # Find buildozer directory and patch sdkmanager_path
           python3 << PYEOF
-          import os, sys
-          target = os.environ.get('TARGET', '')
-          print(f"Target: {target}")
-          print(f"Exists: {os.path.exists(target)}")
-          if os.path.exists(target):
-              with open(target, 'r') as f:
-                  content = f.read()
-              if 'cmdline-tools' not in content:
-                  old = ('        sdkmanager_path = join(\n'
-                         '            self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
-                         '        if not os.path.isfile(sdkmanager_path):\n'
-                         '            raise BuildozerException(\n'
-                         '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
-                         '                 \' installed\'.format(sdkmanager_path)))')
-                  new = ('        sdkmanager_path = join(\n'
-                         '            self.android_sdk_dir, \'cmdline-tools\', \'latest\', \'bin\', sdk_manager_name)\n'
-                         '        if not os.path.isfile(sdkmanager_path):\n'
-                         '            sdkmanager_path = join(\n'
-                         '                self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
-                         '        if not os.path.isfile(sdkmanager_path):\n'
-                         '            raise BuildozerException(\n'
-                         '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
-                         '                 \' installed\'.format(sdkmanager_path)))')
-                  content = content.replace(old, new)
-                  with open(target, 'w') as f:
-                      f.write(content)
-                  print('Patch applied successfully')
+          import buildozer, os, sys
+
+          buildozer_dir = os.path.dirname(buildozer.__file__)
+          target = os.path.join(buildozer_dir, 'targets', 'android.py')
+          print(f"Patching: {target}")
+
+          if not os.path.exists(target):
+              print(f"ERROR: {target} not found!")
+              # Try alternate locations
+              for p in [
+                  '/root/.local/lib/python3.11/site-packages/buildozer/targets/android.py',
+                  '/root/.local/lib/python3.12/site-packages/buildozer/targets/android.py',
+                  '/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/buildozer/targets/android.py',
+              ]:
+                  if os.path.exists(p):
+                      target = p
+                      print(f"Found alternate: {target}")
+                      break
               else:
-                  print('Already patched')
+                  sys.exit(1)
+
+          with open(target, 'r') as f:
+              content = f.read()
+
+          if 'cmdline-tools' not in content:
+              old = ('        sdkmanager_path = join(\n'
+                     '            self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
+                     '        if not os.path.isfile(sdkmanager_path):\n'
+                     '            raise BuildozerException(\n'
+                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
+                     '                 \' installed\'.format(sdkmanager_path)))')
+              new = ('        sdkmanager_path = join(\n'
+                     '            self.android_sdk_dir, \'cmdline-tools\', \'latest\', \'bin\', sdk_manager_name)\n'
+                     '        if not os.path.isfile(sdkmanager_path):\n'
+                     '            sdkmanager_path = join(\n'
+                     '                self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
+                     '        if not os.path.isfile(sdkmanager_path):\n'
+                     '            raise BuildozerException(\n'
+                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
+                     '                 \' installed\'.format(sdkmanager_path)))')
+              content = content.replace(old, new)
+              with open(target, 'w') as f:
+                  f.write(content)
+              print(f'Patch applied to {target}')
           else:
-              print('ERROR: Target not found!')
-              sys.exit(1)
+              print('Already patched')
           PYEOF
 
       - name: Build debug APK
@@ -89,7 +101,6 @@ jobs:
           if [ ! -L "$BUILDOZER_SDK" ]; then
             ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
           fi
-          source /home/runner/venv/bin/activate
           cd android
           buildozer android debug
         timeout-minutes: 120

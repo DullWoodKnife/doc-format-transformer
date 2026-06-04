@@ -28,21 +28,25 @@ jobs:
           echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googlexr-license"
 
-      - name: Install Python dependencies
+      - name: Set up Python & venv
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies in venv (writable location)
         run: |
-          pip install --upgrade pip
-          pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0
-          pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
-          pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
+          python3 -m venv /home/runner/venv
+          /home/runner/venv/bin/pip install --upgrade pip
+          /home/runner/venv/bin/pip install buildozer==1.6.0 kivy==2.3.0 cython==0.29.37 pexpect==4.9.0
+          /home/runner/venv/bin/pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
+          /home/runner/venv/bin/pip install fpdf2 python-docx ebooklib chardet charset-normalizer defusedxml markdownify magika
 
       - name: Patch buildozer to support cmdline-tools layout
         run: |
-          python3 << 'PYEOF'
+          TARGET="/home/runner/venv/lib/python3.11/site-packages/buildozer/targets/android.py"
+          python3 << PYEOF
           import os
-          TARGET = "/root/.local/lib/python3.11/site-packages/buildozer/targets/android.py"
-          if not os.path.exists(TARGET):
-              TARGET = "/root/.local/lib/python3.11/dist-packages/buildozer/targets/android.py"
-          with open(TARGET, 'r') as f:
+          with open('$TARGET', 'r') as f:
               content = f.read()
           if 'cmdline-tools' not in content:
               old = ('        sdkmanager_path = join(\n'
@@ -61,9 +65,9 @@ jobs:
                      '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
                      '                 \' installed\'.format(sdkmanager_path)))')
               content = content.replace(old, new)
-              with open(TARGET, 'w') as f:
+              with open('$TARGET', 'w') as f:
                   f.write(content)
-              print('Patch applied to', TARGET)
+              print('Patch applied to', '$TARGET')
           else:
               print('Already patched')
           PYEOF
@@ -78,6 +82,7 @@ jobs:
           if [ ! -L "$BUILDOZER_SDK" ]; then
             ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
           fi
+          source /home/runner/venv/bin/activate
           cd android
           buildozer android debug
         timeout-minutes: 60

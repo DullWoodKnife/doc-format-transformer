@@ -11,8 +11,8 @@ mainfile = main.py
 # 版本
 version = 0.1.0
 
-# 依赖 - 纯 Python 库
-requirements = python3,kivy,markitdown[all],beautifulsoup4,mammoth,pdfminer.six,pdfplumber,fpdf2,python-docx,ebooklib,chardet,charset-normalizer,defusedxml,markdownify,magika
+# 依赖 - 纯 Python 库（指定兼容版本）
+requirements = python3,kivy==2.2.0,markitdown[all],beautifulsoup4,mammoth,pdfminer.six,pdfplumber,fpdf2,python-docx,ebooklib==0.18,chardet,charset-normalizer,defusedxml,markdownify,magika
 
 # Android 配置
 android.permissions = READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE

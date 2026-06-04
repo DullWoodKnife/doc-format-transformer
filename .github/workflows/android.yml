@@ -47,26 +47,14 @@ jobs:
         run: |
           SDK="/usr/local/lib/android/sdk"
           BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
-
-          # Remove any existing and recreate clean symlink to SDK
           rm -rf "$BUILDOZER_SDK"
           mkdir -p "$(dirname "$BUILDOZER_SDK")"
           ln -s "$SDK" "$BUILDOZER_SDK"
-
-          # Buildozer 1.5.0 checks tools/bin/sdkmanager - create the symlink
           mkdir -p "$BUILDOZER_SDK/tools/bin"
           if [ ! -e "$BUILDOZER_SDK/tools/bin/sdkmanager" ]; then
             ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$BUILDOZER_SDK/tools/bin/sdkmanager"
-            echo "Created tools/bin/sdkmanager -> cmdline-tools/latest/bin/sdkmanager"
           fi
-
-          # Verify everything is in place
-          echo "=== SDK check ==="
-          ls -la "$BUILDOZER_SDK" | head -6
-          echo "=== tools/bin ==="
-          ls -la "$BUILDOZER_SDK/tools/bin/" 2>&1 || echo "tools/bin missing"
-          echo "=== sdkmanager ==="
-          "$BUILDOZER_SDK/tools/bin/sdkmanager" --list 2>&1 | head -3
+          echo "SDK symlink ready"
 
       - name: Build debug APK
         env:

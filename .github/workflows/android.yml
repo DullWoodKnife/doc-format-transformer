@@ -40,33 +40,43 @@ jobs:
 
       - name: Patch buildozer to support cmdline-tools layout
         run: |
-          TARGET="/home/runner/venv/lib/python3.11/site-packages/buildozer/targets/android.py"
+          # Dynamically find buildozer path from venv
+          TARGET=$(/home/runner/venv/bin/python3 -c "import buildozer, os; print(os.path.join(os.path.dirname(buildozer.__file__), 'targets', 'android.py'))")
+          echo "Patching: $TARGET"
+
           python3 << PYEOF
-          import os
-          with open('$TARGET', 'r') as f:
-              content = f.read()
-          if 'cmdline-tools' not in content:
-              old = ('        sdkmanager_path = join(\n'
-                     '            self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
-                     '        if not os.path.isfile(sdkmanager_path):\n'
-                     '            raise BuildozerException(\n'
-                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
-                     '                 \' installed\'.format(sdkmanager_path)))')
-              new = ('        sdkmanager_path = join(\n'
-                     '            self.android_sdk_dir, \'cmdline-tools\', \'latest\', \'bin\', sdk_manager_name)\n'
-                     '        if not os.path.isfile(sdkmanager_path):\n'
-                     '            sdkmanager_path = join(\n'
-                     '                self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
-                     '        if not os.path.isfile(sdkmanager_path):\n'
-                     '            raise BuildozerException(\n'
-                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
-                     '                 \' installed\'.format(sdkmanager_path)))')
-              content = content.replace(old, new)
-              with open('$TARGET', 'w') as f:
-                  f.write(content)
-              print('Patch applied to', '$TARGET')
+          import os, sys
+          target = os.environ.get('TARGET', '')
+          print(f"Target: {target}")
+          print(f"Exists: {os.path.exists(target)}")
+          if os.path.exists(target):
+              with open(target, 'r') as f:
+                  content = f.read()
+              if 'cmdline-tools' not in content:
+                  old = ('        sdkmanager_path = join(\n'
+                         '            self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
+                         '        if not os.path.isfile(sdkmanager_path):\n'
+                         '            raise BuildozerException(\n'
+                         '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
+                         '                 \' installed\'.format(sdkmanager_path)))')
+                  new = ('        sdkmanager_path = join(\n'
+                         '            self.android_sdk_dir, \'cmdline-tools\', \'latest\', \'bin\', sdk_manager_name)\n'
+                         '        if not os.path.isfile(sdkmanager_path):\n'
+                         '            sdkmanager_path = join(\n'
+                         '                self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
+                         '        if not os.path.isfile(sdkmanager_path):\n'
+                         '            raise BuildozerException(\n'
+                         '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
+                         '                 \' installed\'.format(sdkmanager_path)))')
+                  content = content.replace(old, new)
+                  with open(target, 'w') as f:
+                      f.write(content)
+                  print('Patch applied successfully')
+              else:
+                  print('Already patched')
           else:
-              print('Already patched')
+              print('ERROR: Target not found!')
+              sys.exit(1)
           PYEOF
 
       - name: Build debug APK

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'android/**'
+      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,26 +30,25 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-dev python3-pip git cmake unzip openjdk-17-jdk ant wget zip
+          sudo apt-get install -y python3-dev python3-pip git cmake unzip wget zip
 
-      - name: Set up Android SDK
+      - name: Accept Android SDK licenses (required before any SDK tools run)
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mkdir -p latest
-          cp -r cmdline-tools/* latest/ 2>/dev/null || mv cmdline-tools/* latest/ 2>/dev/null || true
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-          # Accept ALL licenses
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          # Install build-tools 34 (Buildozer will install others via gradle too)
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" > /dev/null 2>&1 || true
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/26.1.10909125" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          # Accept all Google licenses
+          yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          # Also accept licenses in common locations
+          for dir in \
+            "$HOME/.android" \
+            "$HOME/Library/Android/sdk" \
+            "/usr/local/android-sdk" \
+            "/opt/android-sdk"; do
+            mkdir -p "$dir"
+            touch "$dir/repositories.cfg"
+            yes | "$dir/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+            yes | "$dir/tools/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          done
 
       - name: Install Python dependencies
         run: |
@@ -59,15 +59,11 @@ jobs:
 
       - name: Build debug APK
         env:
-          ANDROID_HOME: /home/runner/android-sdk
-          ANDROID_SDK_ROOT: /home/runner/android-sdk
-          ANDROID_NDK_HOME: /home/runner/android-sdk/ndk/26.1.10909125
+          # Let Buildozer manage its own SDK/NDK in .buildozer
+          # Do NOT set ANDROID_HOME or ANDROID_SDK_ROOT here
+          # Buildozer will download its own SDK + NDK
+          BUILD_MODE: debug
         run: |
-          # Link Buildozer to use our pre-installed SDK instead of downloading its own
-          mkdir -p /home/runner/.buildozer/android/platform
-          if [ ! -L /home/runner/.buildozer/android/platform/android-sdk ]; then
-            ln -s /home/runner/android-sdk /home/runner/.buildozer/android/platform/android-sdk
-          fi
           cd android
           buildozer android debug
         timeout-minutes: 60

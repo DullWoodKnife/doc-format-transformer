@@ -16,12 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -30,25 +24,25 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-dev python3-pip git cmake unzip wget zip
+          sudo apt-get install -y python3-dev python3-pip git cmake unzip wget openjdk-17-jdk
 
       - name: Accept Android SDK licenses
         run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          # Create a dummy SDK install to pre-accept licenses
-          mkdir -p $HOME/android-sdk/tmp
-          export ANDROID_HOME=$HOME/android-sdk
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
-          # Download cmdline-tools if not present
-          if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-            mkdir -p $ANDROID_HOME/cmdline-tools
-            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline.zip
-            unzip -q /tmp/cmdline.zip -d $ANDROID_HOME/cmdline-tools
-            mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest 2>/dev/null || true
-          fi
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          # Pre-accept licenses for ALL possible SDK locations Buildozer might use
+          for SDK_HOME in \
+            "$HOME/.buildozer/android/platform/android-sdk" \
+            "$HOME/.android/android-sdk" \
+            "$HOME/android-sdk"; do
+            mkdir -p "$SDK_HOME"
+            touch "$SDK_HOME/repositories.cfg"
+            # Write license files
+            mkdir -p "$SDK_HOME/licenses"
+            echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$SDK_HOME/licenses/android-sdk-license"
+            echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" >> "$SDK_HOME/licenses/android-sdk-license"
+            echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK_HOME/licenses/android-sdk-preview-license"
+          done
 
       - name: Install Python dependencies
         run: |

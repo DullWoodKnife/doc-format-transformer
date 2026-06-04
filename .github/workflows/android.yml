@@ -43,58 +43,36 @@ jobs:
           pip install markitdown[all] beautifulsoup4 mammoth pdfminer.six pdfplumber
           pip install fpdf2 python-docx ebooklib==0.18 chardet charset-normalizer defusedxml markdownify magika
 
-      - name: Patch buildozer to support cmdline-tools layout
+      - name: Create symlinks for buildozer SDK layout compatibility
         run: |
-          python3 << PYEOF
-          import buildozer, os
+          SDK="/usr/local/lib/android/sdk"
+          BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          buildozer_dir = os.path.dirname(buildozer.__file__)
-          target = os.path.join(buildozer_dir, 'targets', 'android.py')
+          # Remove any existing and recreate clean symlink to SDK
+          rm -rf "$BUILDOZER_SDK"
+          mkdir -p "$(dirname "$BUILDOZER_SDK")"
+          ln -s "$SDK" "$BUILDOZER_SDK"
 
-          with open(target, 'r') as f:
-              content = f.read()
+          # Buildozer 1.5.0 checks tools/bin/sdkmanager - create the symlink
+          mkdir -p "$BUILDOZER_SDK/tools/bin"
+          if [ ! -e "$BUILDOZER_SDK/tools/bin/sdkmanager" ]; then
+            ln -sf "$SDK/cmdline-tools/latest/bin/sdkmanager" "$BUILDOZER_SDK/tools/bin/sdkmanager"
+            echo "Created tools/bin/sdkmanager -> cmdline-tools/latest/bin/sdkmanager"
+          fi
 
-          if 'cmdline-tools' not in content:
-              old = ('        sdkmanager_path = join(\n'
-                     '            self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
-                     '        if not os.path.isfile(sdkmanager_path):\n'
-                     '            raise BuildozerException(\n'
-                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
-                     '                 \' installed\'.format(sdkmanager_path)))')
-              new = ('        sdkmanager_path = join(\n'
-                     '            self.android_sdk_dir, \'cmdline-tools\', \'latest\', \'bin\', sdk_manager_name)\n'
-                     '        if not os.path.isfile(sdkmanager_path):\n'
-                     '            sdkmanager_path = join(\n'
-                     '                self.android_sdk_dir, \'tools\', \'bin\', sdk_manager_name)\n'
-                     '        if not os.path.isfile(sdkmanager_path):\n'
-                     '            raise BuildozerException(\n'
-                     '                (\'sdkmanager path "{}" does not exist, sdkmanager is not\'\n'
-                     '                 \' installed\'.format(sdkmanager_path)))')
-              content = content.replace(old, new)
-              with open(target, 'w') as f:
-                  f.write(content)
-              print(f'Patch applied to {target}')
-          else:
-              print('Already patched')
-          PYEOF
+          # Verify everything is in place
+          echo "=== SDK check ==="
+          ls -la "$BUILDOZER_SDK" | head -6
+          echo "=== tools/bin ==="
+          ls -la "$BUILDOZER_SDK/tools/bin/" 2>&1 || echo "tools/bin missing"
+          echo "=== sdkmanager ==="
+          "$BUILDOZER_SDK/tools/bin/sdkmanager" --list 2>&1 | head -3
 
       - name: Build debug APK
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          # Create Buildozer SDK symlink + verify
-          BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
-          mkdir -p "$(dirname "$BUILDOZER_SDK")"
-          rm -rf "$BUILDOZER_SDK"
-          ln -s /usr/local/lib/android/sdk "$BUILDOZER_SDK"
-          # Verify the symlink and key files exist
-          echo "=== SDK symlink ==="
-          ls -la "$BUILDOZER_SDK" | head -5
-          echo "=== cmdline-tools ==="
-          ls "$BUILDOZER_SDK/cmdline-tools/" 2>&1 || echo "NO cmdline-tools"
-          echo "=== sdkmanager ==="
-          ls "$BUILDOZER_SDK/cmdline-tools/latest/bin/sdkmanager" 2>&1 || echo "NO sdkmanager"
           cd android
           buildozer android debug
         timeout-minutes: 120

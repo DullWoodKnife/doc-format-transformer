@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Accept Android SDK licenses (pre-installed SDK at /usr/local/lib/android/sdk)
+      - name: Accept Android SDK licenses (pre-installed SDK)
         run: |
           SDK="/usr/local/lib/android/sdk"
           mkdir -p "$SDK/licenses"
@@ -24,9 +24,9 @@ jobs:
           echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" >> "$SDK/licenses/android-sdk-license"
           echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/android-sdk-preview-license"
           echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googletv-license"
-          # Try to accept via both sdkmanager versions
-          yes 2>/dev/null | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
-          yes 2>/dev/null | "$SDK/cmdline-tools/16.0/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          echo -e "\ne9bac50e877f1d597ebb3b69539050a6d3b3e4e7" > "$SDK/licenses/android-sdk-arm-dbt-license"
+          echo -e "\nd975f751698a77b662f1254ddbeed3901e976f5a" > "$SDK/licenses/mips-android-sysimage-license"
+          echo -e "\n8933bad161af4178b1185d1a1f5b0d7f5f115065" > "$SDK/licenses/android-googlexr-license"
 
       - name: Install Python dependencies
         run: |
@@ -40,7 +40,6 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          chmod -R 755 /usr/local/lib/android/sdk
           cd android
           buildozer android debug
         timeout-minutes: 60
